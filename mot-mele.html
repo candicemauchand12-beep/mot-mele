@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mot mêlé</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 20px;
+    background: #f5f7fa;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#consigne {
+    color: #555;
+    margin-bottom: 20px;
+}
+
+#grille {
+    width: min(95vw, 650px);
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    border: 3px solid #333;
+    background: white;
+    user-select: none;
+    touch-action: none;
+}
+
+.case {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #ddd;
+    font-size: clamp(14px, 4vw, 27px);
+    font-weight: bold;
+    color: #222;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.case.selection {
+    background: #90caf9;
+}
+
+.case.trouve {
+    background: #66bb6a;
+    color: white;
+}
+
+#compteur {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#message {
+    margin-top: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #2e7d32;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔎 Mot mêlé</h1>
+
+<div id="consigne">
+Trouve tous les mots cachés dans la grille !
+</div>
+
+<div id="grille"></div>
+
+<div id="compteur">
+Mots trouvés : <span id="nombre">0</span> / 10
+</div>
+
+<div id="message"></div>
+
+
+<script>
+
+/* =========================
+   GRILLE
+   ========================= */
+
+const grille = [
+    "FTUKLVWSDBREX",
+    "HIRONDELLEGWM",
+    "DLVAPFDVSCQTN",
+    "YRPLUMESFJPVI",
+    "SGUOXBMLKPERD",
+    "DJTCANARDFOPH",
+    "ZHRAGNVATSPAD",
+    "OEUFSCQHULMIB",
+    "TRJMZTXHSGWLP",
+    "GOIEHJNPATTES",
+    "CNHZYTXFULYSQ"
+];
+
+
+/* =========================
+   MOTS À TROUVER
+   =========================
+
+   Les mots sont enregistrés ici
+   mais NE SONT PAS AFFICHÉS
+   sur la page.
+*/
+
+const mots = [
+    "AILES",
+    "BEC",
+    "PLUMES",
+    "OIE",
+    "HIRONDELLE",
+    "HERON",
+    "CANARD",
+    "PATTES",
+    "NID",
+    "OEUFS"
+];
+
+
+/* =========================
+   CRÉATION DE LA GRILLE
+   ========================= */
+
+const elementGrille = document.getElementById("grille");
+
+let cases = [];
+
+for (let ligne = 0; ligne < grille.length; ligne++) {
+
+    for (let colonne = 0; colonne < grille[ligne].length; colonne++) {
+
+        const caseElement = document.createElement("div");
+
+        caseElement.className = "case";
+
+        caseElement.textContent = grille[ligne][colonne];
+
+        caseElement.dataset.ligne = ligne;
+        caseElement.dataset.colonne = colonne;
+
+        elementGrille.appendChild(caseElement);
+
+        cases.push(caseElement);
+    }
+}
+
+
+/* =========================
+   SÉLECTION
+   ========================= */
+
+let selection = [];
+let enTrainDeSelectionner = false;
+
+
+/* Commencer une sélection */
+
+function commencerSelection(caseElement) {
+
+    enTrainDeSelectionner = true;
+
+    selection = [caseElement];
+
+    caseElement.classList.add("selection");
+}
+
+
+/* Ajouter une case */
+
+function ajouterCase(caseElement) {
+
+    if (!enTrainDeSelectionner) {
+        return;
+    }
+
+    if (!selection.includes(caseElement)) {
+
+        selection.push(caseElement);
+
+        caseElement.classList.add("selection");
+    }
+}
+
+
+/* Terminer une sélection */
+
+function terminerSelection() {
+
+    if (!enTrainDeSelectionner) {
+        return;
+    }
+
+    enTrainDeSelectionner = false;
+
+    verifierSelection();
+}
+
+
+/* =========================
+   VÉRIFICATION DU MOT
+   ========================= */
+
+let motsTrouves = [];
+
+
+function verifierSelection() {
+
+    const mot = selection
+        .map(caseElement => caseElement.textContent)
+        .join("");
+
+    const motInverse = mot
+        .split("")
+        .reverse()
+        .join("");
+
+
+    let trouve = false;
+
+    for (const motRecherche of mots) {
+
+        if (
+            mot === motRecherche ||
+            motInverse === motRecherche
+        ) {
+
+            if (!motsTrouves.includes(motRecherche)) {
+
+                motsTrouves.push(motRecherche);
+
+                selection.forEach(caseElement => {
+                    caseElement.classList.remove("selection");
+                    caseElement.classList.add("trouve");
+                });
+
+                trouve = true;
+
+                break;
+            }
+        }
+    }
+
+
+    /* Si ce n'est pas un mot */
+
+    if (!trouve) {
+
+        selection.forEach(caseElement => {
+            caseElement.classList.remove("selection");
+        });
+    }
+
+
+    selection = [];
+
+    document.getElementById("nombre").textContent =
+        motsTrouves.length;
+
+
+    if (motsTrouves.length === mots.length) {
+
+        document.getElementById("message").textContent =
+            "🎉 Bravo ! Tu as trouvé tous les mots !";
+    }
+}
+
+
+/* =========================
+   SOURIS
+   ========================= */
+
+cases.forEach(caseElement => {
+
+    caseElement.addEventListener("mousedown", function(event) {
+
+        event.preventDefault();
+
+        commencerSelection(caseElement);
+    });
+
+
+    caseElement.addEventListener("mouseenter", function() {
+
+        ajouterCase(caseElement);
+    });
+
+});
+
+
+document.addEventListener("mouseup", function() {
+
+    terminerSelection();
+});
+
+
+/* =========================
+   TÉLÉPHONE / TABLETTE
+   ========================= */
+
+cases.forEach(caseElement => {
+
+    caseElement.addEventListener("touchstart", function(event) {
+
+        event.preventDefault();
+
+        commencerSelection(caseElement);
+    });
+
+
+    caseElement.addEventListener("touchmove", function(event) {
+
+        event.preventDefault();
+
+        const doigt = event.touches[0];
+
+        const element = document.elementFromPoint(
+            doigt.clientX,
+            doigt.clientY
+        );
+
+        if (
+            element &&
+            element.classList.contains("case")
+        ) {
+
+            ajouterCase(element);
+        }
+
+    });
+
+});
+
+
+document.addEventListener("touchend", function() {
+
+    terminerSelection();
+
+});
+
+</script>
+
+</body>
+</html>
